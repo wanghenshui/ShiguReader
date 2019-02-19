@@ -2,13 +2,13 @@ const config = require("./name-parser-config");
 const same_tags = config.same_tags;
 const not_author_but_tag = config.not_author_but_tag;
 const char_names = require("./character-names");
-const convertTable = {};
+const convert_table = {};
 
 const localCache = {};
 
 same_tags.forEach(row => {
     for(let ii = 1; ii < row.length; ii++){
-        convertTable[row[ii]] = row[0];
+        convert_table[row[ii]] = row[0];
     }
 });
 
@@ -72,7 +72,14 @@ function match(reg, str){
     return result;
 }
 
-const NEED_GROUP = false;
+function removeSubstring(str, substring){
+    let result = str;
+    let index = str.indexOf(substring);
+    if(index > -1){
+        result = result.replace(substring, "");
+    }
+    return result;
+}
 
 function parse(str) {
     if (!str) {
@@ -95,6 +102,7 @@ function parse(str) {
 
     let tags = [];
     let author = null;
+    let group = null;
 
     // looking for author, avoid 6 year digit
     if (bMacthes && bMacthes.length > 0) {
@@ -109,7 +117,8 @@ function parse(str) {
                 //  [真珠貝(武田弘光)]
                 const temp = getAuthorName(token);
                 author = temp.name;
-                NEED_GROUP && temp.group && tags.push(temp.group);
+                // temp.group && tags.push(temp.group);
+                group = temp.group;
                 break;
             }
         }
@@ -130,9 +139,20 @@ function parse(str) {
         }
     })
 
+    let title = removeSubstring(str, author);
+    title = removeSubstring(title, group);
+    title = title.replace(/\[/g, "");
+    title = title.replace(/\]/g, "");
+    title = title.replace(/\(/g, "");
+    title = title.replace(/\)/g, "");
+    tags.forEach(t => {
+        title = removeSubstring(title, t);
+    });
+    title = title.trim();
+
     tags = tags.map(e => {
-        if(convertTable[e]){
-            return convertTable[e];
+        if(convert_table[e]){
+            return convert_table[e];
         }
         return e;
     })
@@ -143,7 +163,7 @@ function parse(str) {
     }
 
     const result = {
-        author, tags
+        author, tags, title, group
     };
 
     localCache[str] = result;

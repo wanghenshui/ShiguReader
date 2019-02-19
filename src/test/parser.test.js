@@ -87,7 +87,7 @@ describe('name parser', () => {
         result = parser.parse(s1);
         assert.deepEqual(result.tags.sort(),["艦これ", "吹雪"].sort());
 
-        s3 = "[Pixel Cot. (羽原メグル)] こおりのせかい (艦隊これくしょん-艦これ-) (1).zip";
+        s3 = "[Pixel Cot. (羽原メグル)] こおりのせかい (艦隊これくしょん-艦これ-) (1)";
         result = parser.parse(s3);
         assert.deepEqual(result.tags.sort(),["艦これ"].sort());   
     })   
