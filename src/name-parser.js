@@ -1,4 +1,6 @@
-const same_tags = require("./same-tags");
+const config = require("./name-parser-config");
+const same_tags = config.same_tags;
+const not_author_but_tag = config.not_author_but_tag;
 const char_names = require("./character-names");
 const convertTable = {};
 
@@ -135,6 +137,11 @@ function parse(str) {
         return e;
     })
 
+    if(not_author_but_tag.includes(author)){
+        tags.push(author);
+        author = null;
+    }
+
     const result = {
         author, tags
     };
@@ -144,3 +151,4 @@ function parse(str) {
 }
 
 module.exports.parse = parse;
+module.exports.isOnlyDigit = isOnlyDigit;

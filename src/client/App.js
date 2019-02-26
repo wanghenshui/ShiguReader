@@ -2,7 +2,6 @@ import React, { Component } from 'react';
 import './style/App.scss';
 import './style/spop.scss';
 import './style/rc-pagination.scss';
-import _ from "underscore";
 import ExplorerPage from "./ExplorerPage";
 import OneBook from "./OneBook";
 import TagPage from "./TagPage";
@@ -12,27 +11,10 @@ import stringHash from "string-hash";
 
 const userConfig = require('../user-config');
 
-const imageTypes = ['.jpg', '.png'];
-const compressTypes = ['.zip', '.rar'];
-_.isImage = function (fn) {
-    return imageTypes.some(e => fn.endsWith(e));
-};
-_.isCompress = function (fn) {
-    return compressTypes.some(e => fn.endsWith(e));
-};
+import _ from "underscore";
+const util = require("../util");
+util.attach(_);
 
-_.getDir = function (fn) {
-    //get parent
-    if(!fn){return ""};
-    const tokens = fn.split('\\');
-    return tokens.slice(0, tokens.length - 1).join('\\');
-};
-
-_.getFn = function (fn) {
-    if(!fn){return ""};
-    const tokens = fn.split('\\');
-    return tokens[tokens.length - 1];
-};
 
 // http://localhost:3000/
 class App extends Component {
@@ -40,9 +22,7 @@ class App extends Component {
     constructor(props) {
         super(props);
         this.state = {};
-
         this.cookies = new Cookies();
-
         userConfig.home_pathes.forEach(e => this.cookies.set(stringHash(e) , e)); 
     }
 
@@ -50,15 +30,20 @@ class App extends Component {
         this.searchText = document.getElementsByClassName('search-input')[0].value;
         this.forceUpdate();
     }
+
+    onFilterClick(event){
+        this.filterText = document.getElementsByClassName('search-input')[0].value;
+        this.forceUpdate();
+    }
     
     RenderSubComponent() {
         const cookies = this.cookies;
         const renderOneBook = (props) => { return (<OneBook {...props} cookies={cookies}/>)};
 
-        const renderExplorer = (props) => { return (<ExplorerPage  {...props} cookies={cookies} />)};
+        const renderExplorer = (props) => { return (<ExplorerPage  {...props} filterText={this.filterText} cookies={cookies} />)};
 
-        const renderTagPage = (props) => { return (<TagPage mode="tag" {...props} cookies={cookies}/>)};
-        const renderAuthorPage = (props) => { return (<TagPage mode="author" {...props} cookies={cookies}/>)};                                                       
+        const renderTagPage = (props) => { return (<TagPage mode="tag" filterText={this.filterText} {...props} cookies={cookies}/>)};
+        const renderAuthorPage = (props) => { return (<TagPage mode="author" filterText={this.filterText} {...props} cookies={cookies}/>)};                                                       
 
         const result = (
         <Switch>
@@ -87,7 +72,12 @@ class App extends Component {
                 }}/>);
         }
 
-        const topNav = !window.location.pathname.includes("/onebook") && (
+        const isOneBook = window.location.pathname.includes("/onebook");
+        const isExplorer = window.location.pathname.includes("/explorer");
+        const isTag = window.location.pathname.includes("/tagPage");
+        const isAuthor = window.location.pathname.includes("/author");
+
+        const topNav = !isOneBook && (
             <div className="topnav container">
                 <div className="links">
                 <Link to='/'><i className="fas fa-home">Home</i></Link>
@@ -96,7 +86,8 @@ class App extends Component {
                 </div>
                 <div className="search-bar">
                     <input className="search-input" type="text" placeholder="Search.."/>
-                    <button  onClick={this.onSearchClick.bind(this)}><i className="fa fa-search"></i></button>
+                    <button  onClick={this.onSearchClick.bind(this)} title="Search"><i className="fa fa-search"></i></button>
+                    {(isExplorer || isTag || isAuthor)  && <button  onClick={this.onFilterClick.bind(this)} title="Filter Files"><i className="fa fa-filter"></i></button>}
                 </div>
             </div>
         );

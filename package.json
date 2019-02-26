@@ -10,12 +10,12 @@
     "server": "nodemon src/server/index.js",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "flow": "flow",
-    "test": "mocha .\\src\\test"
+    "test": "mocha .\\src\\test",
+    "clean-cache": "node src\\tools\\cleanCache.js"
   },
   "author": "Aji",
   "license": "",
   "dependencies": {
-    "7zip": "0.0.6",
     "babel-polyfill": "^6.26.0",
     "bootstrap": "^4.2.1",
     "child-process-promise": "^2.2.1",
@@ -26,14 +26,19 @@
     "express": "^4.16.3",
     "p-limit": "^2.1.0",
     "prop-types": "^15.6.2",
+    "query-string": "^6.2.0",
     "rc-pagination": "^1.17.8",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
+    "react-modular-audio-player": "^1.1.1",
     "react-router-dom": "^4.3.1",
     "react-visibility-sensor": "^5.0.2",
+    "screenfull": "^4.0.0",
     "string-hash": "^1.1.3",
+    "sweetalert2": "^8.0.7",
     "underscore": "^1.9.1",
-    "universal-cookie": "^3.0.7"
+    "universal-cookie": "^3.0.7",
+    "whatwg-fetch": "^3.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",

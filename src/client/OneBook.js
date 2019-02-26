@@ -7,39 +7,42 @@ import stringHash from "string-hash";
 import Sender from './Sender';
 import './style/OneBook.scss';
 import ErrorPage from './ErrorPage';
-import Spinner from './subcomponent/Spinner';
+import CenterSpinner from './subcomponent/CenterSpinner';
 const spop  = require("./subcomponent/spop");
 import FileChangeToolbar from './subcomponent/FileChangeToolbar';
 var classNames = require('classnames');
 var dateFormat = require('dateformat');
+import LoadingImage from './LoadingImage';
+const util = require("../util");
+import AudioPlayer from 'react-modular-audio-player';
+import screenfull from 'screenfull';
+const queryString = require('query-string');
+const isOnlyDigit = nameParser.isOnlyDigit;
+
+function getUrl(fn){
+  return "../" + fn;
+}
 
 export default class OneBook extends Component {
   constructor(props) {
     super(props);
     this.state = {
       files: [],
-      index: -1
+      musicFiles: [],
+      index: this.getInitIndex()
     };
-
     this.failTimes = 0;
   }
 
-  copyToClipboard(event){
-    //https://stackoverflow.com/questions/49236100/copy-text-from-span-to-clipboard
-    var textArea = document.createElement("textarea");
-    textArea.value = "DEL \"" +  this.state.path + "\"";
-    document.body.appendChild(textArea);
-    textArea.select();
-    document.execCommand("Copy");
-    textArea.remove();
-
-    spop({
-      template: 'Copied to Clipboard',
-      position: 'bottom-right',
-      autoclose: 3000
-    });
+  getInitIndex(){
+    const parsed = queryString.parse(location.hash);
+    return parseInt(parsed.index) || 0;
   }
-  
+
+  setIndex(index){
+    location.hash = queryString.stringify({index});
+  }
+
   getHash(){
     return this.props.match.params.number;
   }
@@ -49,6 +52,8 @@ export default class OneBook extends Component {
     if(file && this.loadedHash !== file && this.failTimes < 3){
       this.displayFile(file);
     }
+
+    screenfull.onchange(()=> this.forceUpdate());
   }
   
   componentDidUpdate() {
@@ -58,10 +63,20 @@ export default class OneBook extends Component {
   displayFile(file){
     Sender.post("/api/extract", {  hash: this.getHash() }, res => {
       this.res = res;
-
       if (!res.failed) {
         this.loadedHash = this.getHash();
-        this.setState({ files: res.files || [], index: 0, path:res.path, fileStat: res.stat });
+        let files = res.files || [];
+
+        //files name can be 001.jpg, 002.jpg, 011.jpg, 012.jpg
+        //or 1.jpg, 2.jpg 3.jpg 1.jpg
+        //the sort is trigger
+
+        util.sortFileNames(files);
+
+        let musicFiles = res.musicFiles || [];
+        util.sortFileNames(musicFiles);
+
+        this.setState({ files, musicFiles, path:res.path, fileStat: res.stat });
         document.addEventListener('keydown', this.handleKeyDown.bind(this));
       }else{
         this.failTimes++;
@@ -75,10 +90,13 @@ export default class OneBook extends Component {
   }
   
   handleKeyDown(event) {
-    if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+    const key = event.key.toLowerCase();
+    if (key === "arrowright" || key === "d" || key === "l") {
       this.changePage(this.state.index + 1);
-    } else if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+    } else if (key === "arrowleft" || key === "a" || key === "j") {
       this.changePage(this.state.index - 1);
+    }else if(key === "enter"){
+      this.toggleFullScreen();
     }
   }
   
@@ -95,6 +113,7 @@ export default class OneBook extends Component {
       return;
     }
     this.setState({ index });
+    this.setIndex(index);
   }
   
   next(event) {
@@ -109,55 +128,110 @@ export default class OneBook extends Component {
     this.changePage(index);
   }
   
-  renderFileList() {
-    const { files, index } = this.state;
-    const listItems = files.map((item) => (<li className="one-book-image-li" key={item}><img className="one-book-image" src={"../"+item} alt="book-image"/></li>));
-    return (<ul className="one-book-list">{listItems}</ul>);
-  }
-  
   isFailedLoading(){
     return this.res && this.res.failed;
   }
 
   renderPagination() {
+    if(_.isPad()){ return; }
     const { files, index } = this.state;
     const isLast = index+1 === files.length;
     const text = (index+1) + "/" + files.length;
     const cn = classNames("one-book-foot-index-number", {
       "is-last": isLast
     })
-    
     return <div className={cn}>{text}</div>;
   }
 
   renderFileSizeAndTime(){
-    if(this.state.fileStat){
+    if (this.state.fileStat) {
       const size = Math.ceil(this.state.fileStat.size/ 1000000.0) + "MB";
-      const mTime = dateFormat(this.state.fileStat.mtime, "isoDate");;
-      const text = mTime + " :: " + size;
-      return <div className={"file-stat"}>{text} </div>
+      const mTime = dateFormat(this.state.fileStat.mtime, "isoDate");
+      const { files, index } = this.state;
+      const title = util.getFn(files[index], "/" );
+      const text = [mTime, size, title].map(e => <div key={e} style={{marginLeft:"15px"}}> {e} </div>)
+      return <div className={"one-book-file-stat"}>{text} </div>
     }
   }
 
-  render() {
-    if (this.isFailedLoading()) { 
-      return <ErrorPage res={this.res.res}/>;
-    }
-    
+  renderImage(){
     const { files, index } = this.state;
-    if (_.isEmpty(files)) {
-      if(this.res && !this.refs.failed){
-        return <h3><center>no content files</center></h3>;
-      } else {
-        return (
-          <div className="one-book-loading">
-            {<Spinner />}
-            { "Loading..."}
-          </div>
-        );
-      } 
+    if(!_.isPad()){
+      const cn = classNames("one-book-image", {
+        "has-music": this.hasMusic()
+      });
+      return <img  className={cn} src={getUrl(files[index])} alt="book-image"
+                   onClick={this.next.bind(this)}
+                   onContextMenu={this.prev.bind(this)}
+                   index={index}
+                   />
+    } else {
+      const images = files.map(file => {
+        return <LoadingImage className={"mobile-one-book-image"} 
+                             bottomOffet={-4000}
+                             topOffet={-3000}
+                             url={getUrl(file)} 
+                             key={file}/>
+      });
+
+      return (<div className="mobile-one-book-container">
+                {images}
+            </div>);
     }
+  }
+
+  renderPath() {
+    if (!this.state.path) {
+      return;
+    }
+
+    const parentPath = _.getDir(this.state.path);
+    const parentHash = stringHash(parentPath);
+    const toUrl = ('/explorer/'+ parentHash);
     
+    return (
+      <div className="one-book-path">
+        <Link to={toUrl}>{parentPath} </Link>
+      </div>);
+  }
+
+  renderToolbar(){
+    if (!this.state.path) {
+      return;
+    }
+    const toolbar = !_.isPad() && <FileChangeToolbar className="one-book-toolbar" file={this.state.path}/>;
+    return toolbar;
+  }
+
+  hasMusic(){
+    const {musicFiles} = this.state;
+    return musicFiles.length > 0;
+  }
+
+  renderMusicPlayer(){
+    if(this.hasMusic()){
+      const {musicFiles} = this.state;
+      let playlist = musicFiles.map(e => {
+        return { src: getUrl(e), title: util.getFn(e, "/") }
+      })
+      return <AudioPlayer  audioFiles={playlist}
+                           hideLoop={true}
+                           playerWidth={"90%"}
+                           iconSize={"1.5rem"}
+                           fontWeight={"500"}
+                           fontSize={"1.2rem"}/>;
+    }
+  }
+
+  toggleFullScreen(){
+    screenfull.toggle();
+  }
+
+  renderToggleFullScreenButton(){
+    return <button className="fas fa-arrows-alt fs-toggle-button" title="Toggle Full Screen" onClick={this.toggleFullScreen.bind(this)}/>
+  }
+
+  renderTags(){
     const result = nameParser.parse(_.getFn(this.state.path));
     const author = result && result.author;
     let tags = (result && result.tags)||[];
@@ -171,39 +245,47 @@ export default class OneBook extends Component {
                 <Link to={url}  key={tag}>{tag}</Link>
               </div>);
     })
-  
-    const parentPath = _.getDir(this.state.path);
-    const parentHash = stringHash(parentPath);
-    const toUrl =('/explorer/'+ parentHash);
 
+    return (<div className="one-book-tags">
+            {tagDivs}
+          </div>);
+  }
+
+  render() {
+    if (this.isFailedLoading()) { 
+      return <ErrorPage res={this.res.res}/>;
+    }
+    
+    const { files, index } = this.state;
+    if (_.isEmpty(files)) {
+      if(this.res && !this.refs.failed){
+        return <h3><center>no content files</center></h3>;
+      } else {
+        return (<CenterSpinner />);
+      } 
+    }
+    
+    
     if(this.state.path){
       document.title = _.getFn(this.state.path);
     }
 
+    const wraperCn = classNames("one-book-wrapper", {
+      "full-screen": screenfull.isFullscreen
+    });
+
     return (  
       <div className="one-book-container">
-        <div className="one-book-wrapper">
-          <div className="one-book-title"><center>{_.getFn(this.state.path)}</center></div>
-          <img className="one-book-image" src={"../" + files[index]} alt="book-image"
-          onClick={this.next.bind(this)}
-          onContextMenu={this.prev.bind(this)}
-          index={index}
-          />
+        <div className={wraperCn}>
+          {this.renderImage()}
+          {this.renderMusicPlayer()}
         </div>
+        <div className="one-book-title"> {this.renderPath()} {_.getFn(this.state.path)} </div>
         {this.renderPagination()}
-        <div className="one-book-footer">
-          {tagDivs}
-        </div>
-        {this.state.path && 
-          <div className="one-book-path">
-            <Link to={toUrl}>{parentPath} </Link>
-            <FileChangeToolbar className="one-book-toolbar" file={this.state.path} />
-          </div>
-        }
         {this.renderFileSizeAndTime()}
-        {/* {
-          this.state.path && <FileChangeToolbar className="one-book-toolbar" file={this.state.path} />
-        } */}
+        {this.renderTags()}
+        {this.renderToolbar()}
+        {this.renderToggleFullScreenButton()} 
       </div>
     );
   }

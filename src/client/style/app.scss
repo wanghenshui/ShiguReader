@@ -14,6 +14,7 @@ a {
   color: #DDDDDD;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   width: 100%;
 
   .fas{
@@ -24,6 +25,17 @@ a {
   .fas:hover{
     color: orangered !important;
   }
+
+  .fa-arrow-right{
+    background: transparent;
+    border: 0px;
+    padding: 0px;
+  } 
+}
+
+.path-highlight{
+  color:red;
+  font-weight: 700;
 }
 
 .location-title {
@@ -98,18 +110,28 @@ a {
       float: none;
      }
     }
-
   }
-  
-
-  
-
-
-   
-
-  
-
 }
 
 
+.loading-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
 
+  .loading-inner {
+    margin-top: 100px;
+    text-align: center;
+    font-size: 2rem;
+  }
+}
+
+.rc-pagination-item{
+  min-width: 38px !important;
+
+  &.rc-pagination-item-active{
+    font-weight: 600;
+  }
+}

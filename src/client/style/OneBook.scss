@@ -1,9 +1,6 @@
-.one-book-loading {
-  text-align: center;
-  font-size: 3rem;
-  position: fixed;
-  left: 45%;
-  top: 50%;
+.one-book-nothing-available{
+  color: #e6eff3;
+  font-size: 2rem;
 }
 
 .one-book-container {
@@ -14,10 +11,26 @@
   padding-bottom: 20px;
 
   .one-book-wrapper {
+    margin-top: 5px;
     display: flex !important;
     justify-content: center !important;
     align-items: center;
     flex-flow: column;
+  }
+
+  .fs-toggle-button{
+    color: #e6eff3;
+    background-color: transparent;
+    border: 0;
+    margin-left: 10px;
+    border-radius: 2px;
+    padding: 5px;
+    cursor: pointer;
+    font-size: 1.5rem;
+
+    &:hover{
+      color: #bbe1f1;
+    }
   }
 
   .one-book-list {
@@ -25,19 +38,19 @@
   }
 
   .one-book-title {
-    margin-top: 10px;
-    margin-bottom: 10px;
     color: #f1f1f1;
+    display: flex;
   }
 
   .one-book-path{
     color: #f1f1f1;
+    font-weight: 400;
+    margin-right: 10px;
   }
 
   a {
     color: #DDDDDD !important;
   }
-
 
   .one-book-image-li {
     padding-top:10px;
@@ -46,20 +59,39 @@
   }
 
   .one-book-image {
-    max-height: 800px;
-    margin-bottom: 1rem;
+    max-height: 925px;
+    margin-bottom: 0.5rem;
     box-shadow: 0 2px 4px 0 rgba(0,0,0,0.16),0 2px 10px 0 rgba(0,0,0,0.12)!important;
     z-index: 10;
+
+    &.has-music{
+      max-height: 450px;
+    }
   }
 
-  .one-book-footer {
+  .full-screen {
+    .one-book-image{
+      max-height: 1020px;
+    }
+  }
+
+  .mobile-one-book-image {
+    // width: 95%;
+    width: calc(100% - 10px);
+    margin:5px 5px;
+  }
+
+  .mobile-one-book-container {
+    width: 100%;
+  }
+
+  .one-book-tags {
     display: flex;
     justify-content: flex-start;
   }
 
-  .one-book-footer div{
+  .one-book-tags div{
     margin-right: 10px;
-    padding: 5px 5px;
   }
 
   .one-book-foot-author:hover{
@@ -87,8 +119,18 @@
     display: inline-flex;
   }
 
-  .file-stat{
+  .one-book-file-stat{
     color: #f1f1f1;
     font-size: 1rem;
+    display: flex;
+  }
+
+  .audio-player{
+    height: 50px;
+    background: #d3ffd5;
+    border-radius: 10px;
+    padding: 20px 20px;
+
+    min-width: 200px;
   }
 }

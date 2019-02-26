@@ -8,15 +8,17 @@ import './style/TagPage.scss';
 import { Link } from 'react-router-dom';
 import stringHash from "string-hash";
 import ErrorPage from './ErrorPage';
-import Spinner from './subcomponent/Spinner'
+import CenterSpinner from './subcomponent/CenterSpinner';
 import Pagination from 'rc-pagination';
 import { Redirect } from 'react-router-dom';
-const PER_PAGE = 4 * 5;
+
+const util = require("../util");
 
 export default class TagPage extends Component {
   constructor(prop) {
     super(prop);
     this.state = { tags: [], sortByNumber: true };
+    this.perPage = util.getPerPageItemNumber();
   }
 
   get pageIndex(){
@@ -37,7 +39,7 @@ export default class TagPage extends Component {
       }
     });
   }
-
+  
   getItems(){
     const {
       tags = [],
@@ -57,7 +59,7 @@ export default class TagPage extends Component {
     } = this.state;
 
     if (_.isEmpty(tags) && _.isEmpty(authors)) {
-      return (<div className="tag-page-loading"> {<Spinner />}{ "Loading..."}</div>);
+      return (<CenterSpinner/>);
     }
 
     const items = this.getItems();
@@ -67,7 +69,18 @@ export default class TagPage extends Component {
       keys.sort((a, b) => items[b] - items[a]);
     }
 
-    keys = keys.slice((this.pageIndex-1) * PER_PAGE, this.pageIndex * PER_PAGE);
+    // if(this.props.mode === "tag"){
+      //pick comiket in first page
+
+    var filterText = this.props.filterText && this.props.filterText.toLowerCase();
+    if(filterText){
+      keys =  keys.filter(e => {
+            return e.toLowerCase().indexOf(filterText) > -1;
+      });
+      keys.sort((a, b) => a.localeCompare(b));
+    }
+
+    keys = keys.slice((this.pageIndex-1) * this.perPage, this.pageIndex * this.perPage);
 
     const tagItems = keys.map((tag) => {
       const itemText = `${tag} (${items[tag]})`;
@@ -103,7 +116,8 @@ export default class TagPage extends Component {
   }
 
   handlePageChange(index){
-    const path = "/tagPage/" + index;
+    const temp = this.props.mode === "tag"? "/tagPage/": "/authorPage/";
+    const path = temp + index;
     this.redirect = path;
     this.forceUpdate();
   }
@@ -114,7 +128,7 @@ export default class TagPage extends Component {
     }
 
     return (<Pagination current={this.pageIndex}  
-                        pageSize={PER_PAGE}
+                        pageSize={this.perPage}
                         total={this.getItemLength()} 
                         onChange={this.handlePageChange.bind(this)} />);
   }
@@ -151,4 +165,5 @@ TagPage.propTypes = {
 
 TagPage.propTypes = {
   openDirFunc: PropTypes.func,
+  filterText: PropTypes.string
 };

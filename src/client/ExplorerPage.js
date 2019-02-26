@@ -11,33 +11,45 @@ const userConfig = require('../user-config');
 import ErrorPage from './ErrorPage';
 import Pagination from 'rc-pagination';
 import FileChangeToolbar from './subcomponent/FileChangeToolbar';
-import Spinner from './subcomponent/Spinner';
-const PER_PAGE = 4 * 5;
+import CenterSpinner from './subcomponent/CenterSpinner';
+const util = require("../util");
+const queryString = require('query-string');
 
 export default class ExplorerPage extends Component {
     constructor(prop) {
         super(prop);
-        this.state = { pageIndex: 1 };
+        this.state = { pageIndex: this.getInitPageIndex()};
         this.failedTimes = 0;
+        this.perPage = util.getPerPageItemNumber();
+    }
+
+    getInitPageIndex(){
+        const parsed = queryString.parse(location.hash);
+        return parseInt(parsed.pageIndex) || 1;
+    }
+
+    handlePageChange(index){
+        this.setState({ pageIndex: index});
+        location.hash = queryString.stringify({pageIndex: index});
     }
 
     getHash() {
         return this.props.match.params.tag || 
-               this.props.match.params.author||
-               this.props.match.params.search||
+               this.props.match.params.author ||
+               this.props.match.params.search ||
                this.props.match.params.number;
     }
 
     getMode(){
         if(this.props.match.params.tag){
             return "tag"
-        }if(this.props.match.params.author){
+        } else if(this.props.match.params.author) {
             return "author"
-        }else if(this.props.match.params.number){
+        } else if(this.props.match.params.number) {
             return "explorer";
-        }else if(this.props.match.params.search){
+        } else if(this.props.match.params.search) {
             return "search";
-        }else{
+        } else {
             return "home"
         }
     }
@@ -47,11 +59,11 @@ export default class ExplorerPage extends Component {
         if (hash && this.loadedHash !== hash && this.failedTimes < 3) {
             if(this.getMode() === "tag"){
                 this.requestSearch();
-            }else if(this.getMode() === "author"){
+            } else if(this.getMode() === "author"){
                 this.requestSearch();
-            }else if(this.getMode() === "search"){
+            } else if (this.getMode() === "search"){
                 this.requestTextSearch();
-            }  else {
+            } else {
                 this.requestLsDir();
             }
         }
@@ -61,55 +73,53 @@ export default class ExplorerPage extends Component {
         this.componentDidMount();
     }
 
+    handleRes(res){
+        if (!res.failed) {
+            this.loadedHash = this.getHash();
+            let {dirs, files, path, tag, author} = res;
+            this.loadedHash = this.getHash();
+            files = files.filter(_.isCompress)
+            this.files = files || [];
+            this.dirs = dirs || [];
+            this.path = path || "";
+            this.tag = tag || "";
+            this.author = author || "";
+        }else{
+            this.failedTimes++;
+        }
+        this.res = res;
+        this.forceUpdate();
+    }
+
     requestTextSearch(mode) {
         Sender.post("/api/search", { text: this.props.match.params.search,  mode: this.getMode()}, res => {
-            if (!res.failed) {
-                this.loadedHash = this.getHash();
-                this.files = res.files|| [];
-                this.dirs = [];
-                this.tag = "";
-                this.author = "";
-            }else{
-                this.failedTimes++;
-            }
-            this.res = res;
-            this.forceUpdate();
+            this.handleRes(res);
         });
     }
 
     requestSearch(mode) {
         Sender.post("/api/search", { hash: this.getHash(),  mode: this.getMode()}, res => {
-            if (!res.failed) {
-                this.loadedHash = this.getHash();
-                this.files = res.files|| [];
-                this.dirs = [];
-                this.tag = res.tag;
-                this.author = res.author;
-              }else{
-                  this.failedTimes++;
-              }
-              this.res = res;
-              this.forceUpdate();
+            this.handleRes(res);
         });
     }
     
     requestLsDir() {
         Sender.lsDir({ hash: this.getHash() }, res => {
-            if (!res.failed) {
-                const {dirs, files, path} = res;
-                this.files = files|| [];
-                this.dirs = dirs||[];
-                this.path = path;
-                this.loadedHash = this.getHash();
-                this.forceUpdate();
-            } else {
-                this.res = res;
-                this.failedTimes++;
-                this.forceUpdate();
-            }
+            this.handleRes(res);
         });
     }
     
+    getFilteredFiles(){
+        var filterText = this.props.filterText && this.props.filterText.toLowerCase();
+        if(filterText){
+            return (this.files||[]).filter(e => {
+                return e.toLowerCase().indexOf(filterText) > -1;
+            });
+        }else{
+            return (this.files||[]);
+        }
+    }
+
     renderFileList() {
         let dirs, files;
         if(!this.getHash()) {
@@ -117,23 +127,26 @@ export default class ExplorerPage extends Component {
             files = [];
         } else {
             dirs = this.dirs;
-            files = this.files;
+            files = this.getFilteredFiles();
+        }
+
+        if(this.getMode() === "tag" || this.getMode() === "author" || this.getMode() === "search"){
+            files.sort((a, b) => {
+                const ap = util.getFn(a);
+                const bp = util.getFn(b);
+                return ap.localeCompare(bp);
+            });
         }
         
         if (_.isEmpty(dirs) && _.isEmpty(files)) {
             if(!this.res){
-                return (<div className="explorer-page-loading">
-                {<Spinner />}
-                { "Loading..."}
-              </div>);
+                return (<CenterSpinner />);
             }else{
-                return <center className="">Nothing Available</center>;
+                return <center className="one-book-nothing-available">Nothing Available</center>;
             }
         } 
         
-        //! todo when there is >6000 files, does not need to render all  list
         const dirItems = dirs.map((item) =>  {
-            const text =  _.getFn(item);
             const pathHash = stringHash(item);
             const toUrl =('/explorer/'+ pathHash);
             const result =  (
@@ -145,19 +158,18 @@ export default class ExplorerPage extends Component {
             return  <Link to={toUrl}  key={item}>{result}</Link>;
         });
         //! !todo if the file is already an image file
+        files = files.slice((this.state.pageIndex-1) * this.perPage, (this.state.pageIndex) * this.perPage);
 
-        files = files.filter(_.isCompress);
-        files = files.slice((this.state.pageIndex-1) * PER_PAGE, (this.state.pageIndex) * PER_PAGE);
-
+      
         const zipfileItems = files.map((item) => {
             const text = _.getFn(item);
             const pathHash = stringHash(item);
             const toUrl =  '/onebook/' + pathHash;
-            return (<div key={item} className="col-sm-6 col-md-4 col-lg-3 file-out-cell">
+            return (<div key={item} className={"col-sm-6 col-md-4 col-lg-3 file-out-cell"}>
                         <div className="file-cell">
-                            <Link to={toUrl}  key={item} className="file-cell-inner">
-                                <center className="file-cell-title">{text}</center>
-                                <LoadingImage className="file-cell-thumbnail" fileName={item} />
+                            <Link to={toUrl}  key={item} className={"file-cell-inner"}>
+                                <center className={"file-cell-title"} title={text}>{text}</center>
+                                <LoadingImage className={"file-cell-thumbnail"} title={text} fileName={item} />
                             </Link>
                             <FileChangeToolbar file={item} />
                         </div>
@@ -165,12 +177,12 @@ export default class ExplorerPage extends Component {
         });
 
         return (
-            <div className="explorer-container">
-                <ul className="dir-list container">
+            <div className={"explorer-container"}>
+                <ul className={"dir-list container"}>
                     {dirItems}
                 </ul>
-                <div className="file-grid container">
-                    <div className="row">
+                <div className={"file-grid container"}>
+                    <div className={"row"}>
                         {zipfileItems}
                     </div>
                 </div>
@@ -186,41 +198,65 @@ export default class ExplorerPage extends Component {
         const mode = this.getMode();
         const fn = " (" + (this.files||[]).length + ")";
 
-        if(this.tag && mode === "tag") {
+        if(mode === "home"){
+            return "";
+        }else if(this.tag && mode === "tag") {
             return "Tag: " + this.tag + fn;
         } else if(this.author && mode === "author") {
             return "Author: " + this.author + fn;
-        } else if(this.path){
+        } else if(mode === "explorer" && this.path){
             return "At " + this.path;
         } else if(mode === "search"){
             return "Search Result: " + this.getHash() + fn;
         }
     }
 
-    handlePageChange(index){
-        this.setState({ pageIndex: index});
-      }
-    
+    getLinkToEhentai(){
+        let searchable = this.tag || this.author;
+        if(this.getMode() === "search"){
+            searchable = this.getHash();
+        }
+
+        if(searchable){
+            const link = "https://exhentai.org/?f_search=" + searchable;
+            const title = "Search '"  + searchable +  "' in Exhentai";
+            return <a className="explorer-external-link" href={link} title={title}>{this.getTitle()} </a>;
+        } 
+    }
+
     renderPagination(){
-        const fileLength = (this.files||[]).length;
+        if(this.getMode() === "home"){
+            return;
+        }
+        const fileLength = this.getFilteredFiles().length;
         if(fileLength === 0){
           return;
         }
     
         return (<Pagination current={this.state.pageIndex}  
-                            pageSize={PER_PAGE}
+                            pageSize={this.perPage}
                             total={fileLength} 
                             onChange={this.handlePageChange.bind(this)} />);
-      }
+    }
+
+    setWebTitle(){
+        const mode = this.getMode();
+        if(mode === "home"){
+            document.title = "ShiguReader";
+        }else{
+            document.title = this.tag||this.author||this.path||this.props.match.params.search|| "ShiguReader";
+        }
+    }
     
     render() {
+        this.setWebTitle();
+
         if (this.isFailedLoading()) {
             return <ErrorPage res={this.res.res}/>;
         }
 
-        document.title = this.tag||this.author||this.path||this.props.match.params.search||"ShiguReader";
         return (<div className={"explorer-container-out " + this.getMode()} >
-            <center className="location-title">{this.getTitle()}</center>
+            <center className={"location-title"}>{this.getLinkToEhentai()}</center>
             {this.renderFileList()}
             {this.renderPagination()}
             </div>
@@ -233,5 +269,6 @@ ExplorerPage.propTypes = {
     files: PropTypes.array,
     openBookFunc: PropTypes.func,
     openDirFunc: PropTypes.func,
-    cookies: PropTypes.any
+    cookies: PropTypes.any,
+    filterText: PropTypes.string
 };

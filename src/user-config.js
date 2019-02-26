@@ -1,15 +1,23 @@
 'use strict';
 
-module.exports.home_pathes = ["T:\\迅雷下载", "D:\\_Happy_Lesson\\_Going_to_sort", "D:\\_Happy_Lesson\\_Unread"];
+/**
+ * OPTIONAL cache folder name
+ */
+module.exports.cache_folder_name = "cache";
 
-// module.exports.home_pathes = ["D:\\_Comic"];
+/**
+ * MUST Where ShiguReader will scan files 修改成本地存放漫画zip的路径
+ */
+module.exports.home_pathes = ["T:\\迅雷下载", "D:\\_Happy_Lesson", "D:\\_Happy_Lesson\\_Unread", "D:\\_Happy_Lesson\\_Going_to_sort"];
 
-// module.exports.home_pathes = ["T:\\迅雷下载", "D:\\_Happy_Lesson"];
+/** 
+ * OPTIONAL where to move file
+ */
+module.exports.good_folder = "D:\\_Happy_Lesson\\_Going_to_sort\\good_2019_02_01";
 
-
-
-module.exports.good_folder = "D:\\_Happy_Lesson\\_Going_to_sort\\good_2019_01_01";
-
-module.exports.not_good_folder = ["D:\\_Happy_Lesson\\_Going_to_sort\\_Compressed_3"]
+/**
+ * OPTIONAL where to move file
+ */
+module.exports.not_good_folder = "D:\\_Happy_Lesson\\_Going_to_sort\\_Compressed_3";
 
 
