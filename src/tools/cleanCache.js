@@ -13,21 +13,21 @@ function isSubDirectory(parent, child) {
 
 function del(file){
     if(isSubDirectory(cache_folder_name, file)){
-        const stat = fs.statSync(file);
-        if(stat.isFile()){
-            fs.unlinkSync(file);
-        } else {
-            //!!todo not empty folder
-            try{
-                fs.rmdirSync(file);
-            }catch(e){
-                rimraf(file, (err) =>{
-                    if(err){
-                        console.error(err);
-                    }
-                });
+        rimraf(file, (err) =>{
+            if(err){
+                // try{
+                //     const stat = fs.statSync(file);
+                //     if(stat.isFile()){
+                //         fs.unlinkSync(file);
+                //     } else {
+                //         fs.rmdirSync(file);
+                //     }
+                // }catch(e){
+                //     console.error(file, e);
+                // }
+                console.error(err);
             }
-        }
+        });
 
         counter++;
         if(counter % 20 === 0){
@@ -38,27 +38,37 @@ function del(file){
     }
 }
 
-const folders1 = fs.readdirSync(cache_folder_name);
-folders1.forEach(p1 => {
-    p1 = path.resolve(cache_folder_name, p1);
-    const stat = fs.statSync(p1);
-    if (stat.isFile()) {
-        //nothing
-    }else if(stat.isDirectory()){
-        let subfiles = fs.readdirSync(p1);
-        const noimages = subfiles.filter(e => !util.isImage(e));
-        noimages.forEach(e => del(path.resolve(p1,e)));
-        
-        subfiles = subfiles.filter(e => util.isImage(e));
-        util.sortFileNames(subfiles);
-        if(subfiles.length > 3){
-            for(let ii = 2; ii < subfiles.length; ii++){
-                del(path.resolve(p1, subfiles[ii]));
-            }
-        } else if (subfiles.length === 0){
-            del(p1);
-        }
-    }
-});
+function cleanCache(){
+    const folders1 = fs.readdirSync(cache_folder_name);
+    folders1.forEach(p1 => {
+        try {
+            p1 = path.resolve(cache_folder_name, p1);
+            const stat = fs.statSync(p1);
+            if (stat.isFile()) {
+                //nothing
+                del(p1);
+            }else if(stat.isDirectory()){
+                let subfiles = fs.readdirSync(p1);
+                const noimages = subfiles.filter(e => !util.isImage(e));
+                noimages.forEach(e => del(path.resolve(p1,e)));
 
-console.log("done");
+                subfiles = subfiles.filter(e => util.isImage(e));
+                util.sortFileNames(subfiles);
+                if (subfiles.length === 0){
+                    del(p1);
+                }else  if(subfiles.length === 1){
+                    //nothing
+                }else if(subfiles.length >= 2){
+                    for(let ii = 1; ii < subfiles.length; ii++){
+                        del(path.resolve(p1, subfiles[ii]));
+                    }
+                }
+            }
+        }catch(e){
+            console.error(e);
+        }
+    });
+    console.log("cache clean done");
+}
+
+module.exports.cleanCache = cleanCache;

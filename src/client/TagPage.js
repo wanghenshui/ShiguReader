@@ -6,13 +6,13 @@ import PropTypes from 'prop-types';
 import Sender from './Sender';
 import './style/TagPage.scss';
 import { Link } from 'react-router-dom';
-import stringHash from "string-hash";
 import ErrorPage from './ErrorPage';
 import CenterSpinner from './subcomponent/CenterSpinner';
 import Pagination from 'rc-pagination';
 import { Redirect } from 'react-router-dom';
 
 const util = require("../util");
+const stringHash = util.stringHash;;
 
 export default class TagPage extends Component {
   constructor(prop) {
@@ -89,7 +89,7 @@ export default class TagPage extends Component {
 
       return  (<div key={tag} className="col-sm-6 col-md-4 col-lg-3 tag-page-list-item">
                     <div className={"tag-cell"}>
-                      <Link className="tag-page-list-item-link" to={url}  key={tag}>
+                      <Link target="_blank" className="tag-page-list-item-link" to={url}  key={tag}>
                         <center>{itemText}</center>
                         <LoadingImage className="tag-page-thumbnail" fileName={tag} mode={this.props.mode} />
                       </Link>
@@ -116,6 +116,9 @@ export default class TagPage extends Component {
   }
 
   handlePageChange(index){
+    if(window.event && window.event.ctrlKey){
+      return;
+    }
     const temp = this.props.mode === "tag"? "/tagPage/": "/authorPage/";
     const path = temp + index;
     this.redirect = path;
@@ -130,6 +133,16 @@ export default class TagPage extends Component {
     return (<Pagination current={this.pageIndex}  
                         pageSize={this.perPage}
                         total={this.getItemLength()} 
+                        itemRender={(item, type) =>{
+                          if(type === "page"){
+                              let url = location.pathname.split("/");
+                              url[2] = item;
+                              url = url.join("/");
+                              return  <Link to={url}  >{item}</Link>;
+                          }else if(type === "prev" || type === "next"){
+                              return <a className="rc-pagination-item-link" />
+                          }
+                        }}
                         onChange={this.handlePageChange.bind(this)} />);
   }
 

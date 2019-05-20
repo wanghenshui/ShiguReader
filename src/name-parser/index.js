@@ -6,6 +6,16 @@ const convertTable = {};
 
 const localCache = {};
 
+const comiketTags = [];
+for(let index = 65; index < 97; index++){
+    comiketTags.push(`C${index}`);
+}
+
+comiketTags.push("COMIC1");
+for(let index = 2; index < 16; index++){
+    comiketTags.push(`COMIC1☆${index}`);
+}
+
 same_tags.forEach(row => {
     for(let ii = 1; ii < row.length; ii++){
         convertTable[row[ii]] = row[0];
@@ -74,6 +84,15 @@ function match(reg, str){
 
 const NEED_GROUP = false;
 
+const _TYPES_ = [
+    "同人音声",
+    "成年コミック",
+    "一般コミック",
+    "同人CG集",
+    "ゲームCG",
+    "画集"
+]
+
 function parse(str) {
     if (!str) {
       return null;
@@ -95,6 +114,7 @@ function parse(str) {
 
     let tags = [];
     let author = null;
+    let group = null;
 
     // looking for author, avoid 6 year digit
     if (bMacthes && bMacthes.length > 0) {
@@ -109,7 +129,8 @@ function parse(str) {
                 //  [真珠貝(武田弘光)]
                 const temp = getAuthorName(token);
                 author = temp.name;
-                NEED_GROUP && temp.group && tags.push(temp.group);
+                // NEED_GROUP && temp.group && tags.push(temp.group);
+                group = temp.group;
                 break;
             }
         }
@@ -142,8 +163,28 @@ function parse(str) {
         author = null;
     }
 
+    let comiket = null;
+    tags.forEach(e => {
+        if(comiketTags.includes(e)){
+            comiket = e;
+        }
+    })
+
+    let type;
+    _TYPES_.forEach(t => {
+        if(tags.includes(t)){
+            type = t;
+        }
+    });
+
+
+    if(!type && (comiket|| group)){
+        type = "Doujin";
+    }
+    type = type || "etc";
+
     const result = {
-        author, tags
+        author, tags, comiket, type, group
     };
 
     localCache[str] = result;
@@ -152,3 +193,4 @@ function parse(str) {
 
 module.exports.parse = parse;
 module.exports.isOnlyDigit = isOnlyDigit;
+module.exports.comiketTags = comiketTags;

@@ -1,27 +1,26 @@
 import React, { Component } from 'react';
 import _ from 'underscore';
-import PropTypes from 'prop-types';
 const nameParser = require('../name-parser');
+const classNames = require('classnames');
+const dateFormat = require('dateformat');
+
 import { Link } from 'react-router-dom';
-import stringHash from "string-hash";
 import Sender from './Sender';
 import './style/OneBook.scss';
 import ErrorPage from './ErrorPage';
 import CenterSpinner from './subcomponent/CenterSpinner';
 const spop  = require("./subcomponent/spop");
 import FileChangeToolbar from './subcomponent/FileChangeToolbar';
-var classNames = require('classnames');
-var dateFormat = require('dateformat');
 import LoadingImage from './LoadingImage';
-const util = require("../util");
-import AudioPlayer from 'react-modular-audio-player';
-import screenfull from 'screenfull';
-const queryString = require('query-string');
-const isOnlyDigit = nameParser.isOnlyDigit;
+import MusicPlayer from './MusicPlayer';
 
-function getUrl(fn){
-  return "../" + fn;
-}
+const util = require("../util");
+const queryString = require('query-string');
+const stringHash = util.stringHash;
+const filesizeUitl = require('filesize');
+import screenfull from 'screenfull';
+const getUrl = util.getUrl;
+const Constant = require("../constant");
 
 export default class OneBook extends Component {
   constructor(props) {
@@ -61,7 +60,7 @@ export default class OneBook extends Component {
   }
   
   displayFile(file){
-    Sender.post("/api/extract", {  hash: this.getHash() }, res => {
+    Sender.post("/api/extract", {fileName: this.getPathFromLocalStorage(),   hash: this.getHash() }, res => {
       this.res = res;
       if (!res.failed) {
         this.loadedHash = this.getHash();
@@ -95,8 +94,6 @@ export default class OneBook extends Component {
       this.changePage(this.state.index + 1);
     } else if (key === "arrowleft" || key === "a" || key === "j") {
       this.changePage(this.state.index - 1);
-    }else if(key === "enter"){
-      this.toggleFullScreen();
     }
   }
   
@@ -145,7 +142,7 @@ export default class OneBook extends Component {
 
   renderFileSizeAndTime(){
     if (this.state.fileStat) {
-      const size = Math.ceil(this.state.fileStat.size/ 1000000.0) + "MB";
+      const size = filesizeUitl(this.state.fileStat.size, {base: 2});
       const mTime = dateFormat(this.state.fileStat.mtime, "isoDate");
       const { files, index } = this.state;
       const title = util.getFn(files[index], "/" );
@@ -199,7 +196,7 @@ export default class OneBook extends Component {
     if (!this.state.path) {
       return;
     }
-    const toolbar = !_.isPad() && <FileChangeToolbar className="one-book-toolbar" file={this.state.path}/>;
+    const toolbar = !_.isPad() && <FileChangeToolbar className="one-book-toolbar" file={this.state.path} popPosition={"top-center"}/>;
     return toolbar;
   }
 
@@ -211,24 +208,9 @@ export default class OneBook extends Component {
   renderMusicPlayer(){
     if(this.hasMusic()){
       const {musicFiles} = this.state;
-      let playlist = musicFiles.map(e => {
-        return { src: getUrl(e), title: util.getFn(e, "/") }
-      })
-      return <AudioPlayer  audioFiles={playlist}
-                           hideLoop={true}
-                           playerWidth={"90%"}
-                           iconSize={"1.5rem"}
-                           fontWeight={"500"}
-                           fontSize={"1.2rem"}/>;
+
+      return <MusicPlayer  audioFiles={musicFiles} />;
     }
-  }
-
-  toggleFullScreen(){
-    screenfull.toggle();
-  }
-
-  renderToggleFullScreenButton(){
-    return <button className="fas fa-arrows-alt fs-toggle-button" title="Toggle Full Screen" onClick={this.toggleFullScreen.bind(this)}/>
   }
 
   renderTags(){
@@ -240,15 +222,37 @@ export default class OneBook extends Component {
     
     const tagDivs = tags.length > 0 && tags.map((tag)=>{
       const tagHash = stringHash(tag);
-      const url = tag === author? ("/author/" + tagHash) : ("/tag/" + tagHash);
+      let url = tag === author? ("/author/" + tagHash) : ("/tag/" + tagHash);
+      url += "#sortOrder=" + Constant.SORT_BY_FOLDER;
       return (<div key={tag} className="one-book-foot-author" >
-                <Link to={url}  key={tag}>{tag}</Link>
+                <Link  target="_blank" to={url}  key={tag}>{tag}</Link>
               </div>);
     })
 
     return (<div className="one-book-tags">
             {tagDivs}
           </div>);
+  }
+
+  getPathFromLocalStorage(){
+    const hash = this.getHash();
+    return window.localStorage && window.localStorage.getItem(hash);
+  }
+
+  onTitleClick(){
+    //https://stackoverflow.com/questions/49236100/copy-text-from-span-to-clipboard
+    var textArea = document.createElement("textarea");
+    textArea.value = _.getFn(this.state.path)
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand("Copy");
+    textArea.remove();
+   
+    spop({
+      template: 'Copied to Clipboard',
+      position: 'bottom-right',
+      autoclose: 3000
+    });
   }
 
   render() {
@@ -261,7 +265,7 @@ export default class OneBook extends Component {
       if(this.res && !this.refs.failed){
         return <h3><center>no content files</center></h3>;
       } else {
-        return (<CenterSpinner />);
+        return (<CenterSpinner text={this.getPathFromLocalStorage()} splitFilePath/>);
       } 
     }
     
@@ -280,12 +284,15 @@ export default class OneBook extends Component {
           {this.renderImage()}
           {this.renderMusicPlayer()}
         </div>
-        <div className="one-book-title"> {this.renderPath()} {_.getFn(this.state.path)} </div>
+        <div className="one-book-title" >
+            {this.renderPath()} 
+            <span onClick={this.onTitleClick.bind(this)} className="one-book-title-filename">{_.getFn(this.state.path)} </span>
+        </div>
         {this.renderPagination()}
         {this.renderFileSizeAndTime()}
         {this.renderTags()}
         {this.renderToolbar()}
-        {this.renderToggleFullScreenButton()} 
+        {/* {this.renderToggleFullScreenButton()}  */}
       </div>
     );
   }

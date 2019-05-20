@@ -4,6 +4,7 @@
 const imageTypes = [".jpg", ".png", ".jpeg", ".gif", ".bmp", ".webp"];
 const compressTypes = [".zip", ".rar", ".7zip"];
 const musicTypes = [".mp3"];
+const videoTypes = [".mp4"];
 
 function isOnlyDigit(str){
     return str.match(/^[0-9]+$/) != null
@@ -19,6 +20,10 @@ module.exports.isCompress = function (fn) {
 
 module.exports.isMusic = function(fn){
     return musicTypes.some((e) => fn.toLowerCase().endsWith(e));
+}
+
+module.exports.isVideo = function(fn){
+    return videoTypes.some((e) => fn.toLowerCase().endsWith(e));
 }
 
 //get parent
@@ -40,6 +45,11 @@ const getFnWithoutExtention = module.exports.getFnWithoutExtention = function (f
     if (!fn) { return ""; }
     return getFn(fn, seperator).split(".")[0];
 };
+
+//used by client
+module.exports.getUrl = function (fn){
+    return "../" + fn;
+}
 
 module.exports.sortFileNames = function (files) {
     const fileIndexs =  files.map(e => getFnWithoutExtention(e));
@@ -71,6 +81,14 @@ module.exports.getPerPageItemNumber = function() {
     }
 }
 
+module.exports.stringHash = function (str) {
+    const stringHash = require("string-hash");
+    const  result = stringHash(str);
+    window.localStorage && window.localStorage.setItem(result, str)
+    return result;
+};
+
+
 module.exports.attach = function (obj) {
     obj.isImage = module.exports.isImage;
     obj.isCompress = module.exports.isCompress;
@@ -80,5 +98,6 @@ module.exports.attach = function (obj) {
     obj.getFn = module.exports.getFn;
     obj.isPad = module.exports.isPad;
     obj.getPerPageItemNumber = module.exports.getPerPageItemNumber;
+    obj.stringHash = module.exports.stringHash;
 }
 

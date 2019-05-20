@@ -40,6 +40,14 @@
   .one-book-title {
     color: #f1f1f1;
     display: flex;
+
+    .one-book-title-filename{
+      cursor: copy;
+      &:hover{
+        background: greenyellow;
+        color: black;
+      }
+    }
   }
 
   .one-book-path{
@@ -71,7 +79,7 @@
 
   .full-screen {
     .one-book-image{
-      max-height: 1020px;
+      max-height: 1040px;
     }
   }
 
@@ -123,14 +131,5 @@
     color: #f1f1f1;
     font-size: 1rem;
     display: flex;
-  }
-
-  .audio-player{
-    height: 50px;
-    background: #d3ffd5;
-    border-radius: 10px;
-    padding: 20px 20px;
-
-    min-width: 200px;
   }
 }

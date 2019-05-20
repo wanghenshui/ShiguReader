@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import _ from "underscore";
 import PropTypes from 'prop-types';
 import loading from './images/loading.png';
 import notAvailable from './images/not-available.png';
-import Sender from './Sender';
 const VisibilitySensor = require('react-visibility-sensor').default;
+
+const Constant = require("../constant");
+
 
 export default class LoadingImage extends Component {
   constructor(props) {
@@ -36,7 +37,7 @@ export default class LoadingImage extends Component {
         this.url = url;
         this.setState({ loaded: true }); 
       } else {
-        const api = (mode === "author" || mode === "tag") ? "/api/tagFirstImagePath" :  '/api/firstImage';
+        const api = (mode === "author" || mode === "tag") ? Constant.TAG_THUMBNAIL_PATH_API :  '/api/firstImage';
         const body = {};
 
         if(mode === "author" || mode === "tag"){
@@ -79,12 +80,12 @@ export default class LoadingImage extends Component {
     const cn = "loading-image  " + className;
     let active = true;
     if (this.state.failed) {
-      content = (<img key={fileName} ref={e=>{this.dom = e && e.node}} className={cn} src={notAvailable} title={fileName}/>);
+      content = (<img key={fileName} ref={e=>{this.dom = e && e.node}} className={cn} src={notAvailable} title={title || fileName}/>);
     } else if (this.state.loaded === false) {
-      content = (<img key={fileName} className={cn} src={loading} title={fileName}/>);
+      content = (<img key={fileName} className={cn} src={loading} title={title || fileName}/>);
     } else if (this.url) {
       active = false;
-      content = (<img key={fileName} className={className} src={this.url} title={fileName}/>);
+      content = (<img key={fileName} className={className} src={this.url} title={title || fileName}/>);
     }
 
     return (

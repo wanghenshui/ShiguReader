@@ -7,32 +7,6 @@ a {
   color: #DDDDDD;
 }
 
-.file-change-tool-bar {
-  padding-top: 5px;
-  padding-left: 5px;
-  padding-right: 5px;
-  color: #DDDDDD;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-
-  .fas{
-    margin-left: 5px;
-    cursor: pointer;
-  }
-
-  .fas:hover{
-    color: orangered !important;
-  }
-
-  .fa-arrow-right{
-    background: transparent;
-    border: 0px;
-    padding: 0px;
-  } 
-}
-
 .path-highlight{
   color:red;
   font-weight: 700;
@@ -43,11 +17,6 @@ a {
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 10px;
-}
-
-.rc-pagination {
-  display: flex;
-  justify-content: center;
 }
 
 
@@ -63,9 +32,12 @@ a {
 
   .fas{
     color: #DDDDDD;
+    &::before{
+      padding-right: 5px;
+    }
   }
 
-  .topnav {
+  .app-top-topnav {
     overflow: hidden;
 
     .links {
@@ -74,13 +46,12 @@ a {
 
       a {
         display: block;
-        color: black;
         text-align: center;
         padding: 14px 16px;
         text-decoration: none;
         font-size: 17px;
       }
-  
+
       a:hover {
         background-color: rgb(221, 221, 221);
         i{
@@ -90,7 +61,10 @@ a {
     }
 
     .search-bar{
-      float: right;
+      @media screen and (min-width: 1000px) {
+        float: right;
+        margin-bottom: 25px;
+      }
       display: inline-flex;
       input[type=text] {
         padding: 6px;
@@ -125,11 +99,27 @@ a {
     margin-top: 100px;
     text-align: center;
     font-size: 2rem;
+    color: #DDDDDD;
+
+    .title {
+      color: white;
+    }
   }
 }
 
-.rc-pagination-item{
+.rc-pagination {
+  display: flex;
+  justify-content: center;
+}
+
+.rc-pagination-item {
   min-width: 38px !important;
+
+  a {
+    display: block;
+    width: 100%;
+    height: 100%;;
+  }
 
   &.rc-pagination-item-active{
     font-weight: 600;
