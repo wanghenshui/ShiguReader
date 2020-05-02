@@ -1,12 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const rimraf = require("./rimraf");
-const util = require("../util");
 const minifyImageFile = require("./minifyImageFile");
 
 let counter = 0;
 const pathUtil = require("../server/pathUtil");
-const {  isSub } = pathUtil;
+const { isSub } = pathUtil;
 const serverUtil = require("../server/serverUtil");
 
 const show_error = false;

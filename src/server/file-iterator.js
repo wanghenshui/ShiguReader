@@ -3,21 +3,10 @@
 const path = require('path');
 const fs = require("fs");
 const _ = require("underscore");
-const JsonDB = require('node-json-db').JsonDB;
-const Config = require('node-json-db/dist/lib/JsonDBConfig').Config;
 const userConfig = require('../user-config');
 
 module.exports = function (folders, config) {
-    const hasDb = !!config.db_path;
-    const db = hasDb && new JsonDB(new Config(config.db_path, true, true, '/'));
-    let infos;
-    try{
-        infos =  hasDb && db.getData("/");
-    }catch (e){
-        console.error("[file-iterator]",e)
-    }
-   
-    const result = {pathes: [], infos: infos||{} };
+    const result = {pathes: [], infos: {} };
     config.visited = {};
     folders.forEach((src) => {
         if(fs.existsSync(src)){
@@ -35,12 +24,6 @@ module.exports = function (folders, config) {
         }
     });
     delete config.visited;
-
-    try{
-        hasDb && db.push("/", result.infos);
-    }catch (e){
-        console.error("[file-iterator]",e)
-    }
     return result;
 };
 
@@ -53,13 +36,16 @@ function isLegalDepth(depth, config) {
 
 function getStat(p, config){
     const stat = fs.statSync(p);
-    //for jsonify
-    stat.isFile = stat.isFile();
-    stat.isDirectory = stat.isDirectory();
-    // if(config.getExtraInfo){
-    //     stat.extra = config.getExtraInfo(p, stat);
-    // }
-    return stat;
+    const result = {};
+    result.isFile = stat.isFile();
+    result.isDirectory = stat.isDirectory();
+    result.atimeMs = stat.atimeMs;
+    result.mtimeMs = stat.mtimeMs;
+    result.ctimeMs = stat.ctimeMs;
+    result.atime = stat.atime;
+    result.mtime = stat.mtime;
+    result.ctime = stat.ctime;
+    return result;
 }
 
 function iterate (p, config, result, depth) {
@@ -67,8 +53,15 @@ function iterate (p, config, result, depth) {
         return;
     }
     try {
-        const stat = result.infos[p] || getStat(p, config);
+        let stat = config.db && config.db.find({filePath: p});
+        if(stat[0]){
+            stat = stat[0].stat;
+        }else{
+            stat =  getStat(p, config);
+            config.db.insert({filePath: p, stat: stat})
+        }
         result.infos[p] = stat;
+
         if (stat.isFile) {
             if (config && config.filter && !config.filter(p)) {
                 return;

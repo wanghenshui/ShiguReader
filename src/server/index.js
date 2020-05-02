@@ -33,14 +33,26 @@ const cache_folder_name = userConfig.cache_folder_name;
 const cachePath = path.join(rootPath, cache_folder_name);
 let logPath = path.join(rootPath, userConfig.workspace_name, "log");
 logPath = path.join(logPath, dateFormat(new Date(), "yyyy-mm-dd-hh-mm"))+ ".log";
-let file_db_path =  path.join(rootPath,  userConfig.workspace_name, "shigureader_local_file_info");
 
+var loki = require('lokijs');
+const db_path =  path.join(rootPath,  userConfig.workspace_name, "file_info.json");
+var loki_db = new loki(db_path, {
+	autosave: true, 
+	autosaveInterval: 2000
+});
 
-const JsonDB = require('node-json-db').JsonDB;
-const Config = require('node-json-db/dist/lib/JsonDBConfig').Config;
-let zip_content_db_path =  path.join(rootPath,  userConfig.workspace_name, "shigureader_zip_file_content_info");
+// implement the autoloadback referenced in loki constructor
+let zip_content_db;
+let file_db;
+function databaseInitialize() {
+  zip_content_db = loki_db.getCollection("zips");
+  file_db = loki_db.getCollection("files");
+  if (zip_content_db === null) {
+    zip_content_db = loki_db.addCollection("zips");
+    file_db = loki_db.addCollection("files")
+  }
+}
 
-const zip_content_db = new JsonDB(new Config(zip_content_db_path, true, true, '/'));
 
 // console.log("process.argv", process.argv);
 const isProduction = process.argv.includes("--production");
@@ -51,7 +63,7 @@ console.log("__filename", __filename);
 console.log("__dirname", __dirname);
 console.log("rootPath", rootPath);
 console.log("log path:", logPath);
-console.log("file_db_path", file_db_path);
+console.log("file_db_path", db_path);
 
 const isWin = process.platform === "win32";
 let sevenZip;
@@ -147,12 +159,14 @@ async function init() {
 
     console.log("scanning local files");
 
+    databaseInitialize();
+
     const filter = (e) => {return isSupportedFile(e);};
     let beg = (new Date).getTime()
     const results = fileiterator(userConfig.path_will_scan, { 
         filter:filter, 
         doLog: true,
-        db_path: file_db_path
+        db: file_db
     });
     results.pathes = results.pathes.concat(userConfig.home_pathes);
     let end = (new Date).getTime();
@@ -178,7 +192,8 @@ async function init() {
     console.log("----------scan cache------------");
     const cache_results = fileiterator([cachePath], { 
         filter: isImage, 
-        doLog: true
+        doLog: true,
+        db: file_db
     });
 
     (cache_results.pathes||[]).forEach(p => {
@@ -435,7 +450,7 @@ app.get('/api/video/:hash', async (req, res) => {
 //----------------get folder contents
 function getThumbnails(filePathes){
     const thumbnails = {};
-    const contentInfo = zip_content_db.getData("/");
+
     
     filePathes.forEach(filePath => {
         if(!isCompress(filePath)){
@@ -449,7 +464,8 @@ function getThumbnails(filePathes){
         if(thumb){
             thumbnails[filePath] = fullPathToUrl(thumb);
         }else{
-            const pageNum = contentInfo[filePath] && contentInfo[filePath].pageNum;
+            const contentInfo = zip_content_db.find({filePath: filePath});
+            const pageNum = contentInfo[0] && contentInfo[0].pageNum;
             if(pageNum === "NOT_THUMBNAIL_AVAILABLE" || pageNum === 0){
                 thumbnails[filePath] = "NOT_THUMBNAIL_AVAILABLE";
             }
@@ -684,11 +700,7 @@ async function extractThumbnailFromZip(filePath, res, mode, counter) {
     //do not use zip db's information
     //in case previous info is changed or wrong
     function updateZipDb(pageNum){
-        const contentInfo = zip_content_db.getData("/");
-        contentInfo[filePath] = {
-            pageNum: pageNum
-        };
-        zip_content_db.push("/", contentInfo);
+        zip_content_db.insert({filePath: filePath, pageNum: pageNum});
     }
 
     function handleFail(){
