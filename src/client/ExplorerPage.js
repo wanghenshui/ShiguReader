@@ -65,7 +65,6 @@ export default class ExplorerPage extends Component {
         const showVideo = !!(parsed.showVideo === "true");
     
         return {
-            anchorSideMenu: false,
             pageIndex,
             isRecursive,
             sortOrder,
@@ -268,7 +267,7 @@ export default class ExplorerPage extends Component {
         if(filterByOversizeImage){
            files = files.filter(e => {
                if(this.zipInfo[e]){
-                   const pageNum = getPageNum(e);
+                   const pageNum = this.getPageNum(e);
                    const stats = this.fileInfos[e];
                    const size = stats && stats.size;
                    if(pageNum > 0 && size/pageNum/1000/1000 > userConfig.oversized_image_size){
@@ -541,6 +540,7 @@ export default class ExplorerPage extends Component {
 
         return (
             <div className={"explorer-container"}>
+
                 <ul className={"dir-list container"}>
                     {dirItems}
                 </ul>
@@ -613,15 +613,7 @@ export default class ExplorerPage extends Component {
     }
 
     
-    renderToggleMenuButton(){
-        const text = "toggle side menu"
-        return (
-           <span className="toggle-side-menu-button exp-top-button" onClick={this.toggleSideMenu.bind(this)}> 
-           <span className="fas fa-ellipsis-h" />
-           <span> {text} </span>
-           </span>
-        );
-       }
+
 
     getExplorerToolbar(){
         const mode = this.getMode();
@@ -631,7 +623,6 @@ export default class ExplorerPage extends Component {
                     <div className="col-6 col-md-3"> {this.renderToggleThumbNailButton()} </div>
                     <div className="col-6 col-md-3"> {this.renderLevelButton()} </div>
                     <div className="col-6 col-md-3"> {this.renderShowVideoButton()} </div>
-                    <div className="col-6 col-md-3 d-flex flex-xl-row-reverse" > {this.renderToggleMenuButton()} </div>  
             </div>);
 
             const totalSize = this.getTotalFileSize();
@@ -736,9 +727,7 @@ export default class ExplorerPage extends Component {
         this.setStateAndSetHash({sortOrder: e})
     }
 
-    toggleSideMenu(){
-        this.setState({anchorSideMenu: !this.state.anchorSideMenu})
-    }
+
 
     setFilterText(text){
         this.setStateAndSetHash({filterText: text, pageIndex: 1});
@@ -794,6 +783,24 @@ export default class ExplorerPage extends Component {
 
         SORT_OPTIONS.push(SORT_RANDOMLY);
 
+        if(this.getMode() !== MODE_HOME){
+            const cn = classNames("side-menu container");
+
+            return (<div className={cn}>
+                    <div className="side-menu-radio-title"> File Order </div>
+                    <RadioButtonGroup 
+                            className="sort-radio-button-group"
+                            checked={SORT_OPTIONS.indexOf(this.state.sortOrder)} 
+                            options={SORT_OPTIONS} name="explorer-sort-order" 
+                            onChange={this.onSortChange.bind(this)}/>
+                    <div className="side-menu-radio-title"> Special Filter </div>
+                    {this.renderSpecialFilter()}
+                
+                </div>)
+        }
+    }
+
+    renderTags(){
         const tag2Freq = {};
         const files = this.getFilteredFiles();
         files.forEach(e => {
@@ -827,23 +834,7 @@ export default class ExplorerPage extends Component {
         </div>);
 
         tagInfos.unshift(showAll);
-
-        if(this.getMode() !== MODE_HOME){
-            const cn = classNames("side-menu", "side-menu-click-layer", {
-                anchorSideMenu: this.state.anchorSideMenu
-            });
-
-            return (<div className={cn}>
-                    <div className="side-menu-radio-title"> File Order </div>
-                    <RadioButtonGroup 
-                            checked={SORT_OPTIONS.indexOf(this.state.sortOrder)} 
-                            options={SORT_OPTIONS} name="explorer-sort-order" 
-                            onChange={this.onSortChange.bind(this)}/>
-                    <div className="side-menu-radio-title"> Special Filter </div>
-                    {this.renderSpecialFilter()}
-                    {tagInfos}
-                </div>)
-        }
+        return tagInfos;
     }
 
     renderSpecialFilter(){
@@ -873,12 +864,12 @@ export default class ExplorerPage extends Component {
                                 {st4}   
                             </Checkbox> ); 
         return (
-        <React.Fragment>
+        <div className="speical-checkbox-container">
             {checkbox}
             {checkbox2}
             {checkbox3}
             {checkbox4}
-        </React.Fragment>);
+        </div>);
     }
 
     render() {
@@ -891,9 +882,9 @@ export default class ExplorerPage extends Component {
         const cn = classNames("explorer-container-out", this.getMode().replace(" ", "_"));
 
         return (<div className={cn} >
-            {this.renderSideMenu()}
             {this.getLinkToEhentai()}
             {this.getExplorerToolbar()}
+            {this.renderSideMenu()}
             {this.renderFileList()}
             {this.renderPagination()}
             </div>

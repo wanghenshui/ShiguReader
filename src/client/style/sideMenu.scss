@@ -1,0 +1,40 @@
+.side-menu {
+  box-sizing: border-box;
+  padding-left: 20px;
+  font-size: 10px;
+  padding-top: 10px;
+
+  display: block;
+  background-color: #99a2b5; 
+
+  .side-menu-radio-title {
+    color: #0f2452;
+    font-weight: 500;
+    margin-bottom: 5px;
+  }
+
+  .speical-checkbox-container,
+  .sort-radio-button-group{
+    display: flex;
+  }
+
+  .aji-checkbox,
+  .radio-button{
+    margin-right: 5px;
+    color: $font_color_white_one;
+  }
+
+  .side-menu-single-tag{
+    &.side-menu-single-tag-all{
+      border-top: $font_color_white_one solid 1px;
+    }
+
+    cursor: pointer;
+    color: $font_color_white_one;
+
+    &:hover{
+      color: #43464e;
+      font-weight: bold;
+    }
+  }
+}
