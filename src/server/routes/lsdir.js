@@ -105,7 +105,7 @@ router.post('/api/lsDir', async (req, res) => {
         .find({ 'filePath': { '$regex': reg }, isDisplayableInOnebook: true })
         .where(obj => isSub(dir, obj.filePath)).data();
 
-    const imgFolders = {};
+    let imgFolders = {};
 
     img_files_results.forEach(obj => {
         //reduce by its parent folder
@@ -114,6 +114,7 @@ router.post('/api/lsDir', async (req, res) => {
             return;
         }
 
+        //TODO: No need to return all files json
         if (isRecursive) {
             imgFolders[pp] = imgFolders[pp] || [];
             imgFolders[pp].push(obj.filePath);
@@ -130,6 +131,15 @@ router.post('/api/lsDir', async (req, res) => {
     })
 
     const imgFolderInfo = getImgFolderInfo(imgFolders);
+
+    const tempObj = {};
+    _.keys(imgFolders).forEach(imgFolderPath => {
+        const items = imgFolders[imgFolderPath];
+        const _imgs = items.filter(isImage);
+        serverUtil.sortFileNames(_imgs)
+        tempObj[imgFolderPath] = _imgs[0];
+    });
+    imgFolders = tempObj;
 
     const time2 = getCurrentTime();
     const timeUsed = (time2 - time1) / 1000;
